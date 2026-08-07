@@ -2,10 +2,10 @@
 Enabling translucent windows via the translucency effect plugin results in all the blur effect plugins having less effect. This occurs for the default blur plugin, the better blur DX plugin, this glass plugin, as well as the old glass plugin. Using transparency level window rules however do not impact the blur effect. If the blur effect disappears after an update, check to see if you have the translucency efffect plugin enabled and if so, check if the default blur effect plugin is also suffering. If so, raise a bug with the maintainers of the translucency effect plugin.
 
 # Frozen Glass
--
-Frozen Glass is a port of bea4dev's Frozen ShojiWM config to KWin.
-<br>I did not come up with this effect. Like seriously, all credit goes to bea4dev. Please don't sue me<br>
-https://github.com/bea4dev/frozen-desktop-config-shojiwm/
+- Frozen Glass is a port of bea4dev's Frozen ShojiWM config to KWin.
+- I did not come up with this effect. Like seriously, all credit goes to bea4dev. Please don't sue me
+- https://github.com/bea4dev/frozen-desktop-config-shojiwm/
+- To install, run build.sh
 ![Screenshot](/docs/s.png)
 <br>
 ---------------
