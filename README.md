@@ -3,7 +3,7 @@ Enabling translucent windows via the translucency effect plugin results in all t
 
 # Frozen Glass
 Frozen Glass is a fork of the Plasma 6 blur effect with additional features and bug fixes.
-
+https://github.com/bea4dev/frozen-desktop-config-shojiwm/
 ![Screenshot](/docs/s.png)
 
 
