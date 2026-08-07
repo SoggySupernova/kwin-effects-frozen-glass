@@ -4,9 +4,10 @@ Enabling translucent windows via the translucency effect plugin results in all t
 # Frozen Glass
 Frozen Glass is a fork of the Plasma 6 blur effect with additional features and bug fixes.
 
-![Screenshot](/docs/S)
-![Did someone say liquid?](/docs/liquid_enough.png)
-![Latest shader effect](/docs/latest.png)
+![Screenshot](/docs/s.png)
+
+
+
 
 ### Different blur for different parts.
 
