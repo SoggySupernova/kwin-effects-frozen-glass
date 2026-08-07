@@ -261,6 +261,9 @@ vec4 glass(vec4 sum, vec4 cornerRadius)
                                   fbm(ice_texture_uv2 * 1.7 + vec2(0.0, bump)) - height2
         ) / bump;
         surface_grad = surface_grad1 * ICE_texture_refraction1 + surface_grad2 * ICE_texture_refraction2;
+        // Reduce legacy-mode gradient amplitude to better match newer modes
+        float legacy_grad_scale = 0.55;
+        surface_grad *= legacy_grad_scale;
     }
 
     vec2 bend = facet_dir * 0.6 + surface_grad * 0.4;
