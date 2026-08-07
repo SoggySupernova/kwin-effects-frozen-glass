@@ -15,12 +15,12 @@
             }
         ],
         "Category": "Appearance",
-        "Description": "Glass effect with refraction, blur and more",
-        "Description[fr]": "Effet de verre avec réfraction, flou et plus",
+        "Description": "Crystalline frozen glass effect with refraction, cracks, and frost",
+        "Description[fr]": "Effet de verre gelé cristallin avec réfraction, fissures et givre",
         "EnabledByDefault": false,
         "License": "GPL",
-        "Name": "Glass",
-        "Name[fr]": "Verre"
+        "Name": "Frozen Glass",
+        "Name[fr]": "Verre gelé"
     },
     "X-KDE-ConfigModule": "kwin_glass_config"
 }
