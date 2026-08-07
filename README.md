@@ -1,10 +1,10 @@
 # Warning!!! Translucency effect users
 Enabling translucent windows via the translucency effect plugin results in all the blur effect plugins having less effect. This occurs for the default blur plugin, the better blur DX plugin, this glass plugin, as well as the old glass plugin. Using transparency level window rules however do not impact the blur effect. If the blur effect disappears after an update, check to see if you have the translucency efffect plugin enabled and if so, check if the default blur effect plugin is also suffering. If so, raise a bug with the maintainers of the translucency effect plugin.
 
-# Glass
-Glass is a fork of the Plasma 6 blur effect with additional features and bug fixes.
+# Frozen Glass
+Frozen Glass is a fork of the Plasma 6 blur effect with additional features and bug fixes.
 
-![Screenshot](/docs/glass.png)
+![Screenshot](/docs/S)
 ![Did someone say liquid?](/docs/liquid_enough.png)
 ![Latest shader effect](/docs/latest.png)
 
