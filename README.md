@@ -37,79 +37,6 @@ big thanks to [@dnmodder](https://github.com/dnmodder) for providing the patch f
 > [!IMPORTANT]
 > If the effect stops working after a system upgrade, you will need to rebuild it or reinstall the package.
 
-## Packages
-> [!IMPORTANT]
-> If find errors with these instructions (ie missing packages) feel free to raise in issue (or PR) describing your findings.
-
-<details>
-  <summary>NixOS (flakes)</summary>
-  <br>
-
-  ``flake.nix``:
-  ```nix
-    {
-      inputs = {
-        # nixpkgs repository
-        nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable"
-
-        # kwin-effects-glass flake module
-        kwin-effects-glass = {
-          url = "github:4v3ngR/kwin-effects-glass";
-          inputs.nixpkgs.follows = "nixpkgs";
-        };
-      };
-    }
-  ```
-
-  ```nix
-    { inputs, pkgs, ... }:
-    
-    {
-      # alternatively, put the attributes in the list into
-      # 'users.users.<name>.packages' or 'home.packages' if
-      # using home-manager
-      environment.systemPackages = [
-        inputs.kwin-effects-glass.packages.${pkgs.system}.default # for KDE Wayland
-        inputs.kwin-effects-glass.packages.${pkgs.system}.x11 # for KDE X11
-      ];
-    }
-  ```
-</details>
-
-<details>
-  <summary>Arch (AUR)</summary>
-  <br>
-  
-  ```sh
-  yay -S kwin-effects-glass-git
-  ```
-  
-  Thanks to [Avi Tretiak](https://github.com/avitretiak) [package details](https://aur.archlinux.org/packages/kwin-effects-glass-git)
-</details>
-
-<details>
-  <summary>Fedora 43, 42 (copr)</summary>
-  <br>
-  
-  ```sh
-  sudo dnf copr enable ama1470/kwin-effects-glass
-  sudo dnf install kwin-effects-glass
-  ```
-  
-  > WARNING
-  > This copr repo is maintained by [AMA147000](https://github.com/AMA147000) rather than the upstream developer and may break on changes. For packaging/updating error please open tickets on the [packaging repo](https://github.com/AMA147000/kwin-effects-glass-packaging) instead of this one.
-</details>
-
-<details>
-  <summary>openSUSE Tumbleweed</summary>
-  <br>
-  
-  ```sh
-  sudo zypper ar https://download.opensuse.org/repositories/home:/vcalles/openSUSE_Tumbleweed/home:vcalles.repo
-  sudo zypper refresh
-  sudo zypper install kwin-effects-glass
-  ```
-</details>
 
 ## Manual
 > [!NOTE]
@@ -220,7 +147,7 @@ This effect will conflict with the stock blur effect and any other forks of it.
 1. Install the plugin.
 2. Open the *Desktop Effects* page in *System Settings*.
 3. Disable any blur effects.
-4. Enable the *Glass* effect.
+4. Enable the *Frozen Glass* effect.
 
 ### Window transparency
 The window needs to be translucent in order for the blur to be visible. This can be done in multiple ways:
