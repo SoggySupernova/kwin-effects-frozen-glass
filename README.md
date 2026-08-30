@@ -8,7 +8,7 @@ Enabling translucent windows via the translucency effect plugin results in all t
 - To install, run build.sh
 ![Screenshot](/docs/s.png)
 ## Disclaimer
-This effect is very graphics intensive and is likely to slow down your desktop significantly if you have older hardware. This is more meant as a proof of concept.
+- This effect is very graphics intensive and is likely to slow down your desktop significantly if you have older hardware. This is more meant as a proof of concept.
 <br>
 ---------------
 <br>
