@@ -1,20 +1,7 @@
-// Frozen-glass backdrop, ported from a standalone GLSL shader (written against
-// an EffectContext-style DSL) onto this project's real KWin shader pipeline.
-//
-// How the coordinate systems line up with the original shader:
-//   effect.content_rect_px.zw  -> blurSize                (window content size, px)
-//   effect_content_px(effect)  -> uv * blurSize            ("frag", px, top-left origin)
-//   tex / effect.texture_uv    -> texUnit / uv              (this pass's backdrop sampler)
-// texUnit here is the same dual-Kawase-blurred backdrop the rest of this file
-// already refracts through, so the ice sits on top of the existing blur instead
-// of the raw compositor backdrop -- this reads better at typical crystal_px sizes
-// and avoids a second full-res texture fetch per pixel.
-//
-// Frozen-glass tuning is now contained entirely in this shader.
-// The visible appearance of the ice is governed by constants below,
-// making this effect easier to reuse as a drop-in glass shader.
+// why is it detecting this as typescript?????
+uniform float refractionStrength;
 
-const float ICE_REFRACTION_STRENGTH = 1.0; // effect-specific refraction strength
+// ice refraction strength moved to glass()
 const float ICE_EDGE_SIZE_PX = 20.0;      // refraction edge width, px
 const int ICE_QUALITY_MODE = 1;           // 0=balanced, 1=high quality, 2=legacy pre-optimization
 const float ICE_TINT_AMOUNT = 0.28;       // blue grading amount
@@ -205,6 +192,7 @@ vec4 voronoi(vec2 p) {
 // used effect.texture_uv for its clear_backdrop.
 vec4 glass(vec4 sum, vec4 cornerRadius)
 {
+    float ICE_REFRACTION_STRENGTH = refractionStrength;
     vec2 halfBlurSize = blurSize * 0.5;
     vec2 position = uv * blurSize - halfBlurSize;
     float dist = roundedRectangleDist(position, halfBlurSize, cornerRadius);
