@@ -114,7 +114,7 @@ big thanks to [@dnmodder](https://github.com/dnmodder) for providing the patch f
 
 ### Building
 ```sh
-git clone https://github.com/SoggySupernova/kwin-effects-frozen-glass
+git clone https://github.com/SoggySupernova/kwin-effects-frozen-glass.git
 cd kwin-effects-frozen-glass
 ./build.sh
 ```
