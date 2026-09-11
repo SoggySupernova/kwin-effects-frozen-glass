@@ -114,18 +114,14 @@ big thanks to [@dnmodder](https://github.com/dnmodder) for providing the patch f
 
 ### Building
 ```sh
-git clone https://github.com/4v3ngR/kwin-effects-glass
-cd kwin-effects-glass
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr
-make -j$(nproc)
-sudo make install
+git clone https://github.com/SoggySupernova/kwin-effects-frozen-glass
+cd kwin-effects-frozen-glass
+./build.sh
 ```
 
 <details>
   <summary>Building on Fedora Kinoite</summary>
-  <br>
+  <br>NEEDS TESTING<br>
 
   ```sh
   # enter container
