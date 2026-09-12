@@ -12,6 +12,9 @@
             },
             {
                 "Name": "iGerman00"
+            },
+            {
+                "Name": "SoggySupernova"
             }
         ],
         "Category": "Appearance",
@@ -19,7 +22,7 @@
         "Description[fr]": "Effet de verre gelé cristallin avec réfraction, fissures et givre",
         "EnabledByDefault": false,
         "License": "GPL",
-        "Name": "Frozen Glass",
+        "Name": "Frozen Glass (duo-anim branch)",
         "Name[fr]": "Verre gelé"
     },
     "X-KDE-ConfigModule": "kwin_glass_config"

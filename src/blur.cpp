@@ -32,6 +32,7 @@
 #include "window.h"
 
 #ifdef GLASS_KWIN_67
+// six seven
 #include "wayland/backgroundeffect_v1.h"
 #include "wayland_server.h"
 #endif
