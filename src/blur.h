@@ -17,6 +17,7 @@
 
 #include <QList>
 #include <QStringList>
+#include <QUdpSocket>
 
 #include <unordered_map>
 #include <Plasma/plasma_version.h>
@@ -128,6 +129,7 @@ public Q_SLOTS:
     void slotPropertyNotify(KWin::EffectWindow *w, long atom);
 #endif
     void setupDecorationConnections(EffectWindow *w);
+    void readLidAngleSocket();
 
 private:
     struct BlurPipelineSettings
@@ -188,6 +190,13 @@ private:
         int glowStrengthLocation;
         int edgeLightingLocation;
     } m_roundedOnscreenPass;
+
+    QUdpSocket *m_udpSocket = nullptr;
+    float m_lidAngleRad = 1.570796f; // Default ~90 degrees
+    float m_fovStrength = 0.15f;
+
+    int uAngleRadLocation = -1;
+    int uFovStrengthLocation = -1;
 
     struct
     {

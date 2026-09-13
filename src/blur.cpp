@@ -116,6 +116,10 @@ static QMatrix4x4 colorTransformMatrix(qreal saturation, qreal contrast, qreal b
 
 BlurEffect::BlurEffect()
 {
+    m_udpSocket = new QUdpSocket(this);
+    m_udpSocket->bind(QHostAddress::LocalHost, 9876);
+    connect(m_udpSocket, &QUdpSocket::readyRead, this, &BlurEffect::readLidAngleSocket);
+
     BlurConfig::instance(effects->config());
     ensureResources();
 
@@ -152,6 +156,10 @@ BlurEffect::BlurEffect()
         m_roundedOnscreenPass.glowColorLocation = m_roundedOnscreenPass.shader->uniformLocation("glowColor");
         m_roundedOnscreenPass.glowStrengthLocation = m_roundedOnscreenPass.shader->uniformLocation("glowStrength");
         m_roundedOnscreenPass.edgeLightingLocation = m_roundedOnscreenPass.shader->uniformLocation("edgeLighting");
+
+        // Query new uniform locations
+        uAngleRadLocation = m_roundedOnscreenPass.shader->uniformLocation("uAngleRad");
+        uFovStrengthLocation = m_roundedOnscreenPass.shader->uniformLocation("uFovStrength");
     }
 
     m_downsamplePass.shader = ShaderManager::instance()->generateShaderFromFile(ShaderTrait::MapTexture,
@@ -328,6 +336,22 @@ void BlurEffect::initBlurStrengthValues()
         for (int j = 1; j <= iterationNumber; j++) {
             // {iteration, offset}
             blurStrengthValues.append({i + 1, blurOffsets[i].minOffset + (offsetDifference / iterationNumber) * j});
+        }
+    }
+}
+
+void BlurEffect::readLidAngleSocket()
+{
+    while (m_udpSocket && m_udpSocket->hasPendingDatagrams()) {
+        QByteArray datagram;
+        datagram.resize(m_udpSocket->pendingDatagramSize());
+        m_udpSocket->readDatagram(datagram.data(), datagram.size());
+
+        bool ok;
+        float deg = datagram.trimmed().toFloat(&ok);
+        if (ok) {
+            m_lidAngleRad = deg * (M_PI / 180.0f); // Degrees to Radians
+            effects->addRepaintFull();
         }
     }
 }
@@ -1462,6 +1486,8 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.refractionOffsetStrengthLocation, m_settings.refraction.refractionOffsetStrength);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.refractionBevelIntensityLocation, m_settings.refraction.refractionBevelIntensity);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.physicallyBasedRefractionLocation, m_settings.refraction.physicallyBased ? 1 : 0);
+    m_roundedOnscreenPass.shader->setUniform(uAngleRadLocation, m_lidAngleRad);
+    m_roundedOnscreenPass.shader->setUniform(uFovStrengthLocation, m_fovStrength);
 
     QColor tint(m_settings.general.tintColor);
     QVector3D tintVec(tint.redF(), tint.greenF(), tint.blueF());

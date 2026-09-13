@@ -50,6 +50,7 @@ kconfig_add_kcfg_files(glass_SOURCES
 if(GLASS_WAYLAND)
     add_library(glass MODULE ${glass_SOURCES})
     target_link_libraries(glass PRIVATE
+        Qt6::Network
         KDecoration3::KDecoration
         KF6::ConfigGui
         KWin::kwin
@@ -62,6 +63,7 @@ endif()
 if(GLASS_X11)
     add_library(glass_x11 MODULE ${glass_SOURCES})
     target_link_libraries(glass_x11 PRIVATE
+        Qt6::Network
         KDecoration3::KDecoration
         KF6::ConfigGui
         KWinX11::kwin

@@ -45,7 +45,7 @@ fi
 
 if [ -f /etc/machine-id ]; then
     # NixOS
-    nix shell . --command /bin/sh -c "$launch_plasma_command"
+    eval "$launch_plasma_command"
 else
     eval "$launch_plasma_command"
 fi
