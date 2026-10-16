@@ -76,6 +76,12 @@ struct BlurEffectData
     std::optional<BorderRadius> originalCornerRadius;
 };
 
+#ifdef GLASS_KWIN_68
+using DrawWindowResult = bool;
+#else
+using DrawWindowResult = void;
+#endif
+
 class BlurEffect : public KWin::Effect
 {
     Q_OBJECT
@@ -105,7 +111,7 @@ public:
     void prePaintWindow(RenderView *view, EffectWindow *w, WindowPrePaintData &data, std::chrono::milliseconds presentTime) override;
 #endif
 #endif
-    void drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data) override;
+    DrawWindowResult drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data) override;
 
     bool provides(Feature feature) override;
     bool isActive() const override;
@@ -177,6 +183,9 @@ private:
         int refractionOffsetStrengthLocation;
         int refractionBevelIntensityLocation;
         int physicallyBasedRefractionLocation;
+        int bodyRefractionLocation;
+        int bodyRefractionReachLocation;
+        int bodyRefractionStrengthLocation;
 
         int tintColorLocation;
         int tintGrayLocation;
@@ -187,6 +196,14 @@ private:
         int glowColorLocation;
         int glowStrengthLocation;
         int edgeLightingLocation;
+        int rimGlowLocation;
+        int glowOffsetLocation;
+        int rimGlowColorMixLocation;
+        int rimSpecularLocation;
+        int rimSpecularScaleLocation;
+        int rimWidthLocation;
+        int rimAdaptToRefractionLocation;
+        int rimAdaptMultiplierLocation;
     } m_roundedOnscreenPass;
 
     struct
@@ -230,6 +247,8 @@ private:
     int m_expandSize;
     float m_blurRadius = 1.0f;
     float m_upsampleOffset = 1.0f;
+    float m_dockBlurRadius = 1.0f;
+    float m_dockUpsampleOffset = 1.0f;
     size_t m_maxIterationCount = 1; // number of times the texture will be downsized to half size
     BlurPipelineSettings m_contentBlurSettings{};
     BlurPipelineSettings m_decorationBlurSettings{};

@@ -153,10 +153,22 @@ The window needs to be translucent in order for the blur to be visible. This can
 - Use a transparent color scheme, such as [Alpha](https://store.kde.org/p/1972214)
 - Create a window rule that reduces the window opacity
 
+> [!NOTE]
+> - Ensure KWin's built-in **Translucency** desktop effect is disabled in *System Settings → Desktop Effects*, as it overrides and conflicts with blur pipelines.
+> - For windows that do not natively declare Wayland blur regions (e.g. terminals or electron apps with opacity rules), enable **Ignore content blur region** in the Glass settings under the *Rounded Corners* tab.
+
 ### Obtaining window classes
-The classes of windows to blur can be specified in the effect settings. You can obtain them in two ways:
-  - Run ``qdbus org.kde.KWin /KWin org.kde.KWin.queryWindowInfo`` and click on the window. You can use either *resourceClass* or *resourceName*.
+The classes of windows to blur (or exclude) can be specified in the effect settings. By default, the effect blurs all windows (blacklist mode). You can obtain window classes in two ways:
+  - Run ``qdbus6 org.kde.KWin /KWin org.kde.KWin.queryWindowInfo`` (or ``qdbus`` depending on your distribution) and click on the window. You can use either *resourceClass* or *resourceName*.
   - Right click on the titlebar, go to *More Options* and *Configure Special Window/Application Settings*. The class can be found at *Window class (application)*. If there is a space, for example *Navigator firefox*, you can use either *Navigator* or *firefox*.
+
+### Reloading without logging out
+You can reconfigure KWin and reload the Glass effect directly via D-Bus:
+```sh
+qdbus6 org.kde.KWin /KWin reconfigure
+qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect glass
+```
+*(Use ``qdbus`` if your distribution links the Qt 6 tool as ``qdbus``)*
 
 # High cursor latency or stuttering on Wayland
 This effect can be very resource-intensive if you have a lot of windows open. On Wayland, high GPU load may result in higher cursor latency or even stuttering. If that bothers you, set the following environment variable: ``KWIN_DRM_NO_AMS=1``. If that's not enough, try enabling or disabling the software cursor by also setting ``KWIN_FORCE_SW_CURSOR=0`` or ``KWIN_FORCE_SW_CURSOR=1``.
@@ -165,3 +177,4 @@ Intel GPUs use software cursor by default due to [this bug](https://gitlab.freed
 
 # Credits
 - [a-parhom/LightlyShaders](https://github.com/a-parhom/LightlyShaders) - CMakeLists.txt files
+- [SuceV587/NextKde](https://github.com/SuceV587/NextKde) - Shader and refraction optimizations

@@ -53,9 +53,13 @@ void BlurSettings::read()
     general.contrast = BlurConfig::contrast();
     general.oklabSaturation = BlurConfig::oklabSaturation();
 
-    const float finetune = 0.5f + std::clamp(BlurConfig::blurFinetune(), 0, 10) * 0.13f;
-    general.blurRadius = finetune;
-    general.upsampleOffset = finetune;
+    const auto finetuneScale = [](int finetune) {
+        return 0.5f + std::clamp(finetune, 0, 10) * 0.13f;
+    };
+    general.blurRadius = finetuneScale(BlurConfig::blurFinetune());
+    general.upsampleOffset = general.blurRadius;
+    general.dockBlurRadius = finetuneScale(BlurConfig::dockBlurFinetune());
+    general.dockUpsampleOffset = general.dockBlurRadius;
     general.saturationCompensation = BlurConfig::blurSaturationCompensation();
 
     general.tintColor = BlurConfig::tintColor();
@@ -65,6 +69,14 @@ void BlurSettings::read()
     general.autoTintAlphaMin = std::min(autoTintAlphaMin, autoTintAlphaMax);
     general.autoTintAlphaMax = std::max(autoTintAlphaMin, autoTintAlphaMax);
     general.glowColor = BlurConfig::glowColor();
+    general.rimGlow = BlurConfig::rimGlow();
+    general.glowOffset = std::clamp(BlurConfig::glowOffset(), -100, 100) / 100.0f;
+    general.rimGlowColorMix = BlurConfig::rimGlowColorMix();
+    general.rimSpecular = BlurConfig::rimSpecular();
+    general.rimSpecularScale = std::clamp(BlurConfig::rimSpecularScale(), 0, 20) / 10.0f;
+    general.rimWidth = std::clamp(BlurConfig::rimWidth(), 10, 40) / 10.0f;
+    general.rimAdaptToRefraction = BlurConfig::rimAdaptToRefraction();
+    general.rimAdaptMultiplier = std::clamp(BlurConfig::rimAdaptMultiplier(), 0, 20) / 10.0f;
     general.edgeLighting = BlurConfig::edgeLighting();
     general.edgeLightingDock = BlurConfig::edgeLightingDock();
     general.edgeLightingTooltip = BlurConfig::edgeLightingTooltip();
@@ -100,6 +112,14 @@ void BlurSettings::read()
     refraction.refractionOffsetStrength = BlurConfig::refractionOffsetStrength() / 2.0;
     refraction.refractionBevelIntensity = BlurConfig::refractionBevelIntensity() / 10.0;
     refraction.physicallyBased = BlurConfig::physicallyBasedRefraction();
+    refraction.bodyRefraction = BlurConfig::bodyRefraction();
+    refraction.bodyRefractionReach = std::clamp(BlurConfig::bodyRefractionReach(), 0, 80);
+    refraction.bodyRefractionStrength = std::clamp(BlurConfig::bodyRefractionStrength(), 0, 100) / 100.0f;
+    refraction.excludeWindows = BlurConfig::refractionExcludeWindows();
+    refraction.excludeDocks = BlurConfig::refractionExcludeDocks();
+    refraction.excludeMenus = BlurConfig::refractionExcludeMenus();
+    refraction.excludeTooltips = BlurConfig::refractionExcludeTooltips();
+    refraction.excludeOSD = BlurConfig::refractionExcludeOSD();
 }
 
 }

@@ -42,7 +42,31 @@
             <default>100</default>
         </entry>
         <entry name="GlowColor" type="String">
-            <default>#00000000</default>
+            <default>#FFFFFFFF</default>
+        </entry>
+        <entry name="RimGlow" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="GlowOffset" type="Int">
+            <default>0</default>
+        </entry>
+        <entry name="RimGlowColorMix" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RimSpecular" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RimSpecularScale" type="Int">
+            <default>10</default>
+        </entry>
+        <entry name="RimWidth" type="Int">
+            <default>19</default>
+        </entry>
+        <entry name="RimAdaptToRefraction" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RimAdaptMultiplier" type="Int">
+            <default>2</default>
         </entry>
         <entry name="BlurStrength" type="Int">
             <default>3</default>
@@ -50,23 +74,26 @@
         <entry name="BlurFinetune" type="Int">
             <default>3</default>
         </entry>
+        <entry name="DockBlurFinetune" type="Int">
+            <default>3</default>
+        </entry>
         <entry name="BlurSaturationCompensation" type="Bool">
             <default>true</default>
         </entry>
         <entry name="NoiseStrength" type="Int">
-            <default>5</default>
+            <default>0</default>
         </entry>
         <entry name="DecorationBlurStrength" type="Int">
-            <default>15</default>
+            <default>6</default>
         </entry>
         <entry name="DecorationNoiseStrength" type="Int">
-            <default>5</default>
+            <default>0</default>
         </entry>
         <entry name="DockBlurStrength" type="Int">
-            <default>15</default>
+            <default>6</default>
         </entry>
         <entry name="DockNoiseStrength" type="Int">
-            <default>5</default>
+            <default>0</default>
         </entry>
         <entry name="BlurDecorations" type="Bool">
             <default>false</default>
@@ -76,10 +103,10 @@
 </default>
         </entry>
         <entry name="BlurMatching" type="Bool">
-            <default>true</default>
+            <default>false</default>
         </entry>
         <entry name="BlurNonMatching" type="Bool">
-            <default>false</default>
+            <default>true</default>
         </entry>
         <entry name="TransparentBlur" type="Bool">
             <default>true</default>
@@ -166,7 +193,7 @@
             <default>20.0</default>
         </entry>
         <entry name="RefractionRGBFringing" type="Double">
-            <default>1.0</default>
+            <default>0.0</default>
         </entry>
         <entry name="RefractionOffsetStrength" type="Double">
             <default>8.0</default>
@@ -175,6 +202,30 @@
             <default>10</default>
         </entry>
         <entry name="PhysicallyBasedRefraction" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="BodyRefraction" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="BodyRefractionReach" type="Int">
+            <default>40</default>
+        </entry>
+        <entry name="BodyRefractionStrength" type="Int">
+            <default>25</default>
+        </entry>
+        <entry name="RefractionExcludeWindows" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RefractionExcludeDocks" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RefractionExcludeMenus" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RefractionExcludeTooltips" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="RefractionExcludeOSD" type="Bool">
             <default>false</default>
         </entry>
     </group>

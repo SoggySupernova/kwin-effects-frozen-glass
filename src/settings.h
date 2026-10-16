@@ -28,12 +28,22 @@ struct GeneralSettings
     bool oklabSaturation;
     float blurRadius;
     float upsampleOffset;
+    float dockBlurRadius;
+    float dockUpsampleOffset;
     bool saturationCompensation;
     QString tintColor;
     bool autoTintAlpha;
     float autoTintAlphaMin;
     float autoTintAlphaMax;
     QString glowColor;
+    bool rimGlow;
+    float glowOffset;
+    bool rimGlowColorMix;
+    bool rimSpecular;
+    float rimSpecularScale;
+    float rimWidth;
+    bool rimAdaptToRefraction;
+    float rimAdaptMultiplier;
     bool edgeLighting;
     bool edgeLightingDock;
     bool edgeLightingTooltip;
@@ -78,6 +88,14 @@ struct RefractionSettings
     float refractionOffsetStrength;
     float refractionBevelIntensity;
     bool physicallyBased;
+    bool bodyRefraction;
+    float bodyRefractionReach;
+    float bodyRefractionStrength;
+    bool excludeWindows;
+    bool excludeDocks;
+    bool excludeMenus;
+    bool excludeTooltips;
+    bool excludeOSD;
 };
 
 class BlurSettings
