@@ -1,4 +1,3 @@
-// why is it detecting this as typescript?????
 uniform float refractionStrength;
 
 // ice refraction strength moved to glass()
@@ -7,7 +6,7 @@ const int ICE_QUALITY_MODE = 1;           // 0=balanced, 1=high quality, 2=legac
 const float ICE_TINT_AMOUNT = 0.28;       // blue grading amount
 const vec3 ICE_TINT_COLOR = vec3(0.82, 0.93, 1.08);
 const vec3 ICE_CRACK_COLOR = vec3(0.85, 0.95, 1.0);
-const float ICE_CRACK_INTENSITY = 0.06;
+const float ICE_CRACK_INTENSITY = 0.05;
 
 // ---- Ice look tuning (edit these, then rebuild) ----------------------------
 const float ICE_crystal_px    = 77.0;  // voronoi cell size, px
@@ -16,12 +15,12 @@ const float ICE_frost_amount  = 0.32;  // base frost coverage, 0..1
 const float ICE_frost_scale         = 1.6;   // vein-field frequency vs crystal grid
 const float ICE_texture_scale1      = 1.0;   // first ice texture layer frequency vs crystal grid
 const float ICE_texture_scale2      = 2.0;   // second ice texture layer frequency vs crystal grid
-const float ICE_texture_refraction1 = 0.67;  // refraction strength for layer 1
-const float ICE_texture_refraction2 = 0.57;  // refraction strength for layer 2
+const float ICE_texture_refraction1 = 0.00;  // refraction strength for layer 1 (0.40)
+const float ICE_texture_refraction2 = 0.00;  // refraction strength for layer 2 (0.50)
 const float ICE_edge_frost          = 0.4;  // extra frost creeping from window edges
 const float ICE_edge_frost_px       = 40.0;  // creep depth, px
 const float ICE_opacity             = 0.85;  // 0 = clear glass, 1 = fully frozen
-const float REFRACTION_PX_SCALE     = 90.0; // px of bend per unit of refractionStrength
+const float REFRACTION_PX_SCALE     = 120.0; // px of bend per unit of refractionStrength
 // -----------------------------------------------------------------------------
 
 float roundedRectangleDist(vec2 p, vec2 b, vec4 cornerRadius)
@@ -229,7 +228,7 @@ vec4 glass(vec4 sum, vec4 cornerRadius)
         float height2 = fbm(ice_texture_uv2 * 1.7);
         vec2 surface_grad1 = vec2(
             fbm(ice_texture_uv1 * 1.7 + vec2(bump, 0.0)) - height1,
-                                  fbm(ice_texture_uv1 * 1.7 + vec2(0.0, bump)) - height1
+                                  fbm_lite(ice_texture_uv1 * 1.7 + vec2(0.0, bump)) - height1
         ) / bump;
         vec2 surface_grad2 = vec2(
             fbm_lite(ice_texture_uv2 * 1.7 + vec2(bump, 0.0)) - height2,
