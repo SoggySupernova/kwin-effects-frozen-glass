@@ -60,9 +60,6 @@
 
 #include <KDecoration3/Decoration>
 
-
-#include <kwin/compositor.h>
-
 Q_LOGGING_CATEGORY(KWIN_BLUR, "kwin_effect_blur", QtWarningMsg)
 
 static void ensureResources()
@@ -1081,10 +1078,8 @@ bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintDa
     bool scaled = !qFuzzyCompare(data.xScale(), 1.0) && !qFuzzyCompare(data.yScale(), 1.0);
     bool translated = data.xTranslation() || data.yTranslation();
 
-
-    // Wobbly windows hack number one!
     if ((scaled || (translated || (mask & PAINT_WINDOW_TRANSFORMED))) && !w->data(WindowForceBlurRole).toBool()) {
-        return true; // this normally returns false
+        return false;
     }
 
     return true;
@@ -1194,7 +1189,6 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         !contentShape.isEmpty();
     const bool splitRenderRegions = splitBlurSettings || splitTintSettings;
     const QRect backgroundRect = effectShape.boundingRect();
-
 #ifdef GLASS_X11
     const QRect scaledBackgroundRect = snapToPixelGrid(scaledRect(backgroundRect, viewport.scale()));
     const QRect deviceBackgroundRect = scaledBackgroundRect;
@@ -1317,24 +1311,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
 
     const int contentVertexCount = effectiveContentShape.size() * 6;
     const int frameVertexCount = effectiveFrameShape.size() * 6;
-    int vertexCount = splitRenderRegions ? (contentVertexCount + frameVertexCount) : contentVertexCount;
-
-    // KWin 6 Approach: Query the windowItem's live mesh representation
-
-    // Inside your loop/lambda:
-    KWin::WindowQuadList activeQuads;
-    if (auto item = w->windowItem()) {
-        if (auto comp = KWin::Compositor::self()) {
-            activeQuads = item->quads(nullptr);
-        }
-    }
-
-
-    if (!activeQuads.isEmpty() && effects->isEffectActive("wobblywindows")) {
-        vertexCount = activeQuads.size() * 6;
-    }
-
-
+    const int vertexCount = splitRenderRegions ? (contentVertexCount + frameVertexCount) : contentVertexCount;
     if (auto result = vbo->map<GLVertex2D>(6 + vertexCount)) {
         auto map = *result;
 
@@ -1383,108 +1360,45 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
             };
         }
 
-
-
         auto appendScreenGeometry = [&](const auto &shapeRects) {
-            KWin::WindowQuadList activeQuads;
-            if (auto item = w->windowItem()) {
-                if (auto comp = KWin::Compositor::self()) {
-                    activeQuads = item->quads(nullptr);
-                }
-            }
+            for (const auto &rect : shapeRects) {
+                const float x0 = rect.left();
+                const float y0 = rect.top();
+                const float x1 = rect.right();
+                const float y1 = rect.bottom();
 
-            if (!activeQuads.isEmpty() && effects->isEffectActive("wobblywindows")) {
-                const QPointF windowOrigin = w->pos();
+                const float u0 = x0 / scaledBackgroundRect.width();
+                const float v0 = 1.0f - y0 / scaledBackgroundRect.height();
+                const float u1 = x1 / scaledBackgroundRect.width();
+                const float v1 = 1.0f - y1 / scaledBackgroundRect.height();
 
-                for (const KWin::WindowQuad &quad : activeQuads) {
-                    const auto &v0 = quad[0];
-                    const auto &v1 = quad[1];
-                    const auto &v2 = quad[2];
-                    const auto &v3 = quad[3];
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x0, y0),
+                    .texcoord = QVector2D(u0, v0),
+                };
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x1, y1),
+                    .texcoord = QVector2D(u1, v1),
+                };
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x0, y1),
+                    .texcoord = QVector2D(u0, v1),
+                };
 
-                    // Translate global screen positions into local window positions
-                    float localX0 = v0.x() - windowOrigin.x();
-                    float localY0 = v0.y() - windowOrigin.y();
-
-                    float localX1 = v1.x() - windowOrigin.x();
-                    float localY1 = v1.y() - windowOrigin.y();
-
-                    float localX2 = v2.x() - windowOrigin.x();
-                    float localY2 = v2.y() - windowOrigin.y();
-
-                    float localX3 = v3.x() - windowOrigin.x();
-                    float localY3 = v3.y() - windowOrigin.y();
-
-                    // Map structural texture coordinates cleanly across the bounding canvas
-                    float u0 = localX0 / scaledBackgroundRect.width();
-                    float v0_tex = 1.0f - (localY0 / scaledBackgroundRect.height());
-
-                    float u1 = localX1 / scaledBackgroundRect.width();
-                    float v1_tex = 1.0f - (localY1 / scaledBackgroundRect.height());
-
-                    float u2 = localX2 / scaledBackgroundRect.width();
-                    float v2_tex = 1.0f - (localY2 / scaledBackgroundRect.height());
-
-                    float u3 = localX3 / scaledBackgroundRect.width();
-                    float v3_tex = 1.0f - (localY3 / scaledBackgroundRect.height());
-
-                    // Triangle 1: Top-Left, Bottom-Right, Bottom-Left
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX0, localY0), .texcoord = QVector2D(u0, v0_tex)};
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX3, localY3), .texcoord = QVector2D(u3, v3_tex)};
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX2, localY2), .texcoord = QVector2D(u2, v2_tex)};
-
-                    // Triangle 2: Top-Left, Top-Right, Bottom-Right
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX0, localY0), .texcoord = QVector2D(u0, v0_tex)};
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX1, localY1), .texcoord = QVector2D(u1, v1_tex)};
-                    map[vboIndex++] = GLVertex2D{.position = QVector2D(localX3, localY3), .texcoord = QVector2D(u3, v3_tex)};
-                }
-            } else {
-                // FALLBACK: Default rectangular code for stationary/normal windows
-                for (const auto &rect : shapeRects) {
-                    const float x0 = rect.left();
-                    const float y0 = rect.top();
-                    const float x1 = rect.right();
-                    const float y1 = rect.bottom();
-
-                    const float u0 = x0 / scaledBackgroundRect.width();
-                    const float v0 = 1.0f - y0 / scaledBackgroundRect.height();
-                    const float u1 = x1 / scaledBackgroundRect.width();
-                    const float v1 = 1.0f - y1 / scaledBackgroundRect.height();
-
-                    // ... Your original 6-vertex rigid rectangle assignments go here ...
-                    // ... Keep the original 6-vertex map assignments here ...
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x0, y0),
-                        .texcoord = QVector2D(u0, v0),
-                    };
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x1, y1),
-                        .texcoord = QVector2D(u1, v1),
-                    };
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x0, y1),
-                        .texcoord = QVector2D(u0, v1),
-                    };
-
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x0, y0),
-                        .texcoord = QVector2D(u0, v0),
-                    };
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x1, y0),
-                        .texcoord = QVector2D(u1, v0),
-                    };
-                    map[vboIndex++] = GLVertex2D{
-                        .position = QVector2D(x1, y1),
-                        .texcoord = QVector2D(u1, v1),
-                    };
-                }
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x0, y0),
+                    .texcoord = QVector2D(u0, v0),
+                };
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x1, y0),
+                    .texcoord = QVector2D(u1, v0),
+                };
+                map[vboIndex++] = GLVertex2D{
+                    .position = QVector2D(x1, y1),
+                    .texcoord = QVector2D(u1, v1),
+                };
             }
         };
-
-
-
-
 
         appendScreenGeometry(effectiveContentShape);
         if (splitBlurSettings) {

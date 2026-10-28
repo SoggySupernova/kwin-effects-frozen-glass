@@ -118,7 +118,7 @@ public:
 
     int requestedEffectChainPosition() const override
     {
-        return 150; // We want this to run LATE late, after wobbly windows and other effects that may transform the window in some way
+        return 20;
     }
 
     bool eventFilter(QObject *watched, QEvent *event) override;
