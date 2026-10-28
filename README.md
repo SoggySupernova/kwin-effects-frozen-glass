@@ -20,6 +20,7 @@ Enabling translucent windows via the translucency effect plugin results in all t
 - [Glass](https://github.com/4v3ngR/Glass) is a fork of Darkly to complement the improved refraction shader for that liquid refraction goodness.
   
 ### Features
+- Wobbly windows support (EXPERIMENTAL, only maintained for latest plasma version on wayland, only on this branch)
 - Wayland and X11 support
 - Force blur
 - Rounded corners with anti-aliasing
