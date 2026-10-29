@@ -92,6 +92,7 @@ public:
 
     static bool supported();
     static bool enabledByDefault();
+    void postPaintScreen() override;
 
     void reconfigure(ReconfigureFlags flags) override;
 #ifdef GLASS_KWIN_67
@@ -241,6 +242,7 @@ private:
 #if KWIN_BUILD_X11
     long net_wm_blur_region = 0;
 #endif
+    BlurRegion m_meshRepaint;   // next to m_paintedDeviceArea
     BlurRegion m_paintedDeviceArea; // keeps track of all painted areas (from bottom to top)
     BlurRegion m_currentDeviceBlur; // keeps track of currently blurred area of the windows (from bottom to top)
     BlurOutput *m_currentOutput = nullptr;

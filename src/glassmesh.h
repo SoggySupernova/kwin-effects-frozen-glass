@@ -10,4 +10,7 @@ namespace KWin
 
 
     static constexpr int GlassMeshRestRole = 0x474C5253; // same layout as GlassMeshRole, undeformed
+
+
+    static constexpr int GlassWobbleTrackedRole = 0x474C5754;
 }

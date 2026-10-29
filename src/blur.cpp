@@ -1108,7 +1108,7 @@ bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintDa
 
     if ((scaled || translated || (mask & PAINT_WINDOW_TRANSFORMED))
         && !w->data(WindowForceBlurRole).toBool()
-        && !w->data(GlassMeshRole).isValid()) {
+        && !w->data(GlassWobbleTrackedRole).isValid()) {
         return false;
     }
 
@@ -1275,6 +1275,9 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         }
     }
     const bool meshMode = !meshQuads.empty();
+    if (meshMode) {
+        m_meshRepaint += Rect(meshBounds.united(QRectF(effectRect)).adjusted(-2, -2, 2, 2).toAlignedRect());
+    }
 
 
 
@@ -1760,6 +1763,15 @@ bool BlurEffect::isActive() const
 bool BlurEffect::blocksDirectScanout() const
 {
     return false;
+}
+
+void BlurEffect::postPaintScreen()
+{
+    if (!m_meshRepaint.isEmpty()) {
+        effects->addRepaint(m_meshRepaint);
+        m_meshRepaint = BlurRegion();
+    }
+    effects->postPaintScreen();
 }
 
 bool BlurEffect::shouldFlattenCorner(KWin::EffectWindow *w, Qt::Corner corner) const {

@@ -266,10 +266,12 @@ namespace KWin
 
             if (windows.contains(w)) {
                 data.setTransformed();
+                w->setData(GlassWobbleTrackedRole, true);        // NEW
             }
         } else if (w->data(GlassMeshRole).isValid()) {   // NEW
             w->setData(GlassMeshRole, QVariant());
             w->setData(GlassMeshRestRole, QVariant());
+            w->setData(GlassWobbleTrackedRole, QVariant());  // NEW, next to the other clears
         }
 
         effects->prePaintWindow(view, w, data);
@@ -938,6 +940,7 @@ namespace KWin
             windows.remove(w);
             w->setData(GlassMeshRole, QVariant());
             w->setData(GlassMeshRestRole, QVariant());
+            w->setData(GlassWobbleTrackedRole, QVariant());  // NEW, next to the other clears
             unredirect(w);
             if (windows.isEmpty()) {
                 effects->addRepaintFull();
