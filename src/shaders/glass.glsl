@@ -1,6 +1,7 @@
 // why is it detecting this as typescript?????
 uniform float refractionStrength;
 
+
 // ice refraction strength moved to glass()
 const float ICE_EDGE_SIZE_PX = 20.0;      // refraction edge width, px
 const int ICE_QUALITY_MODE = 1;           // 0=balanced, 1=high quality, 2=legacy pre-optimization
@@ -23,6 +24,9 @@ const float ICE_edge_frost_px       = 40.0;  // creep depth, px
 const float ICE_opacity             = 0.85;  // 0 = clear glass, 1 = fully frozen
 const float REFRACTION_PX_SCALE     = 90.0; // px of bend per unit of refractionStrength
 // -----------------------------------------------------------------------------
+
+
+
 
 float roundedRectangleDist(vec2 p, vec2 b, vec4 cornerRadius)
 {
@@ -258,8 +262,10 @@ vec4 glass(vec4 sum, vec4 cornerRadius)
 
     float refraction_px = ICE_REFRACTION_STRENGTH * REFRACTION_PX_SCALE;
     float edgeScale = (ICE_QUALITY_MODE == 2) ? 1.0 : (0.35 + 0.65 * crack_glow);
-    vec2 sample_px = frag + bend * refraction_px * edgeScale;
-    vec2 sample_uv = sample_px / safe_size;
+    vec2 bend_px = bend * refraction_px * edgeScale;
+    vec2 sample_uv = (meshMode == 1)
+    ? backdropUv() + bend_px / max(bgSize, vec2(1.0))
+    : (frag + bend_px) / safe_size;
 
     vec4 backdrop = texture(texUnit, sample_uv);
     vec4 clear_backdrop = sum;

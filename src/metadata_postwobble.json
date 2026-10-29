@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Authors": [
+            { "Name": "SoggySupernova" }
+        ],
+        "Category": "Appearance",
+        "Description": "Internal helper that draws Frozen Glass inside Wobbly Windows' offscreen pass",
+        "EnabledByDefault": false,
+        "License": "GPL",
+        "Name": "Frozen Glass (Wobbly Windows helper)"
+    }
+}

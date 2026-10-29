@@ -11,6 +11,12 @@
 #include "blurconfig.h"
 #include "settings.h"
 
+
+
+
+
+#include "glassmesh.h"
+
 #include "core/pixelgrid.h"
 #ifndef GLASS_X11
 #include "core/region.h"
@@ -60,6 +66,11 @@
 
 #include <KDecoration3/Decoration>
 
+
+#include <QFile>
+#include <QTextStream>
+#include <QDir>
+
 Q_LOGGING_CATEGORY(KWIN_BLUR, "kwin_effect_blur", QtWarningMsg)
 
 static void ensureResources()
@@ -67,6 +78,21 @@ static void ensureResources()
     // Must initialize resources manually because the effect is a static lib.
     Q_INIT_RESOURCE(blur);
 }
+
+
+
+
+static void glassLog(const QString &msg)
+{
+    QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
+    if (f.open(QIODevice::Append | QIODevice::Text)) {
+        QTextStream(&f) << msg << "\n";
+    }
+}
+
+
+
+
 
 namespace KWin
 {
@@ -167,6 +193,8 @@ BlurEffect::BlurEffect()
         m_roundedOnscreenPass.rimWidthLocation = m_roundedOnscreenPass.shader->uniformLocation("rimWidth");
         m_roundedOnscreenPass.rimAdaptToRefractionLocation = m_roundedOnscreenPass.shader->uniformLocation("rimAdaptToRefraction");
         m_roundedOnscreenPass.rimAdaptMultiplierLocation = m_roundedOnscreenPass.shader->uniformLocation("rimAdaptMultiplier");
+        m_roundedOnscreenPass.meshModeLocation = m_roundedOnscreenPass.shader->uniformLocation("meshMode");
+        m_roundedOnscreenPass.bgSizeLocation = m_roundedOnscreenPass.shader->uniformLocation("bgSize");
     }
 
     m_downsamplePass.shader = ShaderManager::instance()->generateShaderFromFile(ShaderTrait::MapTexture,
@@ -1078,7 +1106,9 @@ bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintDa
     bool scaled = !qFuzzyCompare(data.xScale(), 1.0) && !qFuzzyCompare(data.yScale(), 1.0);
     bool translated = data.xTranslation() || data.yTranslation();
 
-    if ((scaled || (translated || (mask & PAINT_WINDOW_TRANSFORMED))) && !w->data(WindowForceBlurRole).toBool()) {
+    if ((scaled || translated || (mask & PAINT_WINDOW_TRANSFORMED))
+        && !w->data(WindowForceBlurRole).toBool()
+        && !w->data(GlassMeshRole).isValid()) {
         return false;
     }
 
@@ -1087,6 +1117,30 @@ bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintDa
 
 DrawWindowResult BlurEffect::drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data)
 {
+
+
+
+
+
+
+
+    if (w->data(GlassMeshRole).isValid()) {
+        static int n = 0;
+        if ((n++ % 30) == 0) {
+            const QPolygonF m = w->data(GlassMeshRole).value<QPolygonF>();
+            glassLog(QStringLiteral("mesh pts=%1 bounds=%2,%3 %4x%5 pos=%6,%7 frame=%8x%9 mask=%10")
+            .arg(m.size())
+            .arg(m.boundingRect().x()).arg(m.boundingRect().y())
+            .arg(m.boundingRect().width()).arg(m.boundingRect().height())
+            .arg(w->pos().x()).arg(w->pos().y())
+            .arg(w->frameGeometry().width()).arg(w->frameGeometry().height())
+            .arg(mask));
+        }
+    }
+
+
+
+
     blur(renderTarget, viewport, w, mask, deviceRegion, data);
 
     // Draw the window over the blurred area
@@ -1177,18 +1231,84 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     const BlurRegion effectShape = transformShape(blurRegion(w, &cornerRadius));
     const BlurRegion contentShape = transformShape(contentRegion(w, &cornerRadius));
     const BlurRegion frameShape = effectShape - contentShape;
+
+
+
+
+
+
+    // ---- Wobbly mesh (published by the glass_wobbly fork) ----
+    QPolygonF meshPts, restPts;
+    std::vector<int> meshQuads;   // quads that touch the blur region
+    QRectF meshBounds;
+    const QRect effectRect = effectShape.boundingRect();
+    {
+        const QVariant mv = w->data(GlassMeshRole);
+        const QVariant rv = w->data(GlassMeshRestRole);
+        if (mv.isValid() && rv.isValid()) {
+            meshPts = mv.value<QPolygonF>();
+            restPts = rv.value<QPolygonF>();
+            if (!meshPts.isEmpty() && meshPts.size() == restPts.size() && meshPts.size() % 4 == 0) {
+                const QPointF pos = w->pos();
+                const QRectF effectRectF(effectRect);
+                bool first = true;
+                for (int i = 0; i + 3 < meshPts.size(); i += 4) {
+                    double rx0 = 1e30, ry0 = 1e30, rx1 = -1e30, ry1 = -1e30;
+                    double dx0 = 1e30, dy0 = 1e30, dx1 = -1e30, dy1 = -1e30;
+                    for (int k = 0; k < 4; ++k) {
+                        const QPointF r = restPts[i + k] + pos;
+                        const QPointF d = meshPts[i + k];
+                        rx0 = std::min(rx0, r.x()); ry0 = std::min(ry0, r.y());
+                        rx1 = std::max(rx1, r.x()); ry1 = std::max(ry1, r.y());
+                        dx0 = std::min(dx0, d.x()); dy0 = std::min(dy0, d.y());
+                        dx1 = std::max(dx1, d.x()); dy1 = std::max(dy1, d.y());
+                    }
+                    if (!QRectF(QPointF(rx0, ry0), QPointF(rx1, ry1)).intersects(effectRectF)) {
+                        continue;
+                    }
+                    meshQuads.push_back(i);
+                    const QRectF qb(QPointF(dx0, dy0), QPointF(dx1, dy1));
+                    meshBounds = first ? qb : meshBounds.united(qb);
+                    first = false;
+                }
+            }
+        }
+    }
+    const bool meshMode = !meshQuads.empty();
+
+
+
+    glassLog(QStringLiteral("blur mesh: mv=%1 rv=%2 pts=%3 rest=%4 quads=%5 effectRect=%6,%7 %8x%9")
+    .arg(w->data(GlassMeshRole).isValid())
+    .arg(w->data(GlassMeshRestRole).isValid())
+    .arg(meshPts.size()).arg(restPts.size())
+    .arg(meshQuads.size())
+    .arg(effectRect.x()).arg(effectRect.y()).arg(effectRect.width()).arg(effectRect.height()));
+
+
+
+
+
+
+
     const BlurPipelineSettings &contentBlurSettings = w->isDock() ? m_dockBlurSettings : m_contentBlurSettings;
     const float blurRadius = w->isDock() ? m_dockBlurRadius : m_blurRadius;
     const float upsampleOffset = w->isDock() ? m_dockUpsampleOffset : m_upsampleOffset;
     const BlurPipelineSettings &combinedBlurSettings =
         (contentShape.isEmpty() && !frameShape.isEmpty()) ? m_decorationBlurSettings : contentBlurSettings;
-    const bool splitBlurSettings = !frameShape.isEmpty() &&
+    const bool splitBlurSettings = !meshMode && !frameShape.isEmpty() &&
         !contentShape.isEmpty();
-    const bool splitTintSettings = m_settings.general.excludeDecorations &&
+    const bool splitTintSettings = !meshMode && m_settings.general.excludeDecorations &&
         !frameShape.isEmpty() &&
         !contentShape.isEmpty();
     const bool splitRenderRegions = splitBlurSettings || splitTintSettings;
-    const QRect backgroundRect = effectShape.boundingRect();
+    QRect backgroundRect = effectRect;
+    if (meshMode) {
+        backgroundRect = effectRect.united(meshBounds.adjusted(-1, -1, 1, 1).toAlignedRect());
+        // Snap the size so the offscreen textures aren't reallocated every wobble frame.
+        backgroundRect.setWidth((backgroundRect.width() + 63) / 64 * 64);
+        backgroundRect.setHeight((backgroundRect.height() + 63) / 64 * 64);
+    }
 #ifdef GLASS_X11
     const QRect scaledBackgroundRect = snapToPixelGrid(scaledRect(backgroundRect, viewport.scale()));
     const QRect deviceBackgroundRect = scaledBackgroundRect;
@@ -1309,100 +1429,66 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     vbo->reset();
     vbo->setAttribLayout(std::span(GLVertexBuffer::GLVertex2DLayout), sizeof(GLVertex2D));
 
-    const int contentVertexCount = effectiveContentShape.size() * 6;
-    const int frameVertexCount = effectiveFrameShape.size() * 6;
-    const int vertexCount = splitRenderRegions ? (contentVertexCount + frameVertexCount) : contentVertexCount;
+    const int contentVertexCount = meshMode ? int(meshQuads.size()) * 6
+    : int(effectiveContentShape.size()) * 6;
+    const int frameVertexCount = (!meshMode && splitRenderRegions) ? int(effectiveFrameShape.size()) * 6 : 0;
+    const int vertexCount = contentVertexCount + frameVertexCount;
+
     if (auto result = vbo->map<GLVertex2D>(6 + vertexCount)) {
         auto map = *result;
-
         size_t vboIndex = 0;
 
-        // The geometry that will be blurred offscreen, in logical pixels.
-        {
-            const QRectF localRect = QRectF(0, 0, backgroundRect.width(), backgroundRect.height());
+        auto pushVertex = [&](float x, float y, float u, float v) {
+            map[vboIndex++] = GLVertex2D{.position = QVector2D(x, y), .texcoord = QVector2D(u, v)};
+        };
+        auto pushRect = [&](float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1) {
+            pushVertex(x0, y0, u0, v0);
+            pushVertex(x1, y1, u1, v1);
+            pushVertex(x0, y1, u0, v1);
+            pushVertex(x0, y0, u0, v0);
+            pushVertex(x1, y0, u1, v0);
+            pushVertex(x1, y1, u1, v1);
+        };
 
-            const float x0 = localRect.left();
-            const float y0 = localRect.top();
-            const float x1 = localRect.right();
-            const float y1 = localRect.bottom();
+        // First 6 vertices: full rect for the offscreen down/upsample passes.
+        pushRect(0, 0, backgroundRect.width(), backgroundRect.height(), 0.0f, 1.0f, 1.0f, 0.0f);
 
-            const float u0 = x0 / backgroundRect.width();
-            const float v0 = 1.0f - y0 / backgroundRect.height();
-            const float u1 = x1 / backgroundRect.width();
-            const float v1 = 1.0f - y1 / backgroundRect.height();
-
-            // first triangle
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x0, y0),
-                .texcoord = QVector2D(u0, v0),
-            };
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x1, y1),
-                .texcoord = QVector2D(u1, v1),
-            };
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x0, y1),
-                .texcoord = QVector2D(u0, v1),
-            };
-
-            // second triangle
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x0, y0),
-                .texcoord = QVector2D(u0, v0),
-            };
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x1, y0),
-                .texcoord = QVector2D(u1, v0),
-            };
-            map[vboIndex++] = GLVertex2D{
-                .position = QVector2D(x1, y1),
-                .texcoord = QVector2D(u1, v1),
-            };
-        }
-
-        auto appendScreenGeometry = [&](const auto &shapeRects) {
+        auto appendRects = [&](const auto &shapeRects) {
             for (const auto &rect : shapeRects) {
-                const float x0 = rect.left();
-                const float y0 = rect.top();
-                const float x1 = rect.right();
-                const float y1 = rect.bottom();
-
-                const float u0 = x0 / scaledBackgroundRect.width();
-                const float v0 = 1.0f - y0 / scaledBackgroundRect.height();
-                const float u1 = x1 / scaledBackgroundRect.width();
-                const float v1 = 1.0f - y1 / scaledBackgroundRect.height();
-
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x0, y0),
-                    .texcoord = QVector2D(u0, v0),
-                };
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x1, y1),
-                    .texcoord = QVector2D(u1, v1),
-                };
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x0, y1),
-                    .texcoord = QVector2D(u0, v1),
-                };
-
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x0, y0),
-                    .texcoord = QVector2D(u0, v0),
-                };
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x1, y0),
-                    .texcoord = QVector2D(u1, v0),
-                };
-                map[vboIndex++] = GLVertex2D{
-                    .position = QVector2D(x1, y1),
-                    .texcoord = QVector2D(u1, v1),
-                };
+                const float x0 = rect.left(), y0 = rect.top(), x1 = rect.right(), y1 = rect.bottom();
+                pushRect(x0, y0, x1, y1,
+                         x0 / scaledBackgroundRect.width(), 1.0f - y0 / scaledBackgroundRect.height(),
+                         x1 / scaledBackgroundRect.width(), 1.0f - y1 / scaledBackgroundRect.height());
             }
         };
 
-        appendScreenGeometry(effectiveContentShape);
-        if (splitBlurSettings) {
-            appendScreenGeometry(effectiveFrameShape);
+        if (meshMode) {
+            const double scale = viewport.scale();
+            const QPointF bgOrigin(scaledBackgroundRect.topLeft());
+            const QSizeF frameSize = w->frameGeometry().size();
+            for (int qi : meshQuads) {
+                float px[4], py[4], u[4], v[4];
+                for (int k = 0; k < 4; ++k) {
+                    const QPointF d = meshPts[qi + k] * scale - bgOrigin; // deformed, device px rel. to bg
+                    const QPointF r = restPts[qi + k];                    // rest, frame-relative logical
+                    px[k] = d.x();
+                    py[k] = d.y();
+                    u[k] = r.x() / frameSize.width();
+                    v[k] = 1.0 - r.y() / frameSize.height();
+                }
+                // order: 0=TL 1=TR 2=BR 3=BL
+                pushVertex(px[0], py[0], u[0], v[0]);
+                pushVertex(px[1], py[1], u[1], v[1]);
+                pushVertex(px[2], py[2], u[2], v[2]);
+                pushVertex(px[0], py[0], u[0], v[0]);
+                pushVertex(px[2], py[2], u[2], v[2]);
+                pushVertex(px[3], py[3], u[3], v[3]);
+            }
+        } else {
+            appendRects(effectiveContentShape);
+            if (frameVertexCount > 0) {
+                appendRects(effectiveFrameShape);
+            }
         }
 
         vbo->unmap();
@@ -1545,6 +1631,9 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimWidthLocation, m_settings.general.rimWidth);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimAdaptToRefractionLocation, m_settings.general.rimAdaptToRefraction ? 1 : 0);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimAdaptMultiplierLocation, m_settings.general.rimAdaptMultiplier);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.meshModeLocation, meshMode ? 1 : 0);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.bgSizeLocation,
+                                             QVector2D(scaledBackgroundRect.width(), scaledBackgroundRect.height()));
 
     QColor tint(m_settings.general.tintColor);
     QVector3D tintVec(tint.redF(), tint.greenF(), tint.blueF());

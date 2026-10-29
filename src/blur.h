@@ -204,6 +204,8 @@ private:
         int rimWidthLocation;
         int rimAdaptToRefractionLocation;
         int rimAdaptMultiplierLocation;
+        int meshModeLocation;
+        int bgSizeLocation;
     } m_roundedOnscreenPass;
 
     struct

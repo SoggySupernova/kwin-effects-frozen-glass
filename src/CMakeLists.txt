@@ -51,6 +51,7 @@ kconfig_add_kcfg_files(glass_SOURCES
 
 if(GLASS_WAYLAND)
     add_library(glass MODULE ${glass_SOURCES})
+    add_subdirectory(wobbly)
     target_link_libraries(glass PRIVATE
         KDecoration3::KDecoration
         KF6::ConfigGui
