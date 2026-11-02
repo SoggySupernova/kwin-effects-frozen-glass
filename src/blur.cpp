@@ -84,10 +84,11 @@ static void ensureResources()
 
 static void glassLog(const QString &msg)
 {
-    QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
-    if (f.open(QIODevice::Append | QIODevice::Text)) {
-        QTextStream(&f) << msg << "\n";
-    }
+    // For testing!
+    //QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
+    //if (f.open(QIODevice::Append | QIODevice::Text)) {
+        //QTextStream(&f) << msg << "\n";
+    //}
 }
 
 

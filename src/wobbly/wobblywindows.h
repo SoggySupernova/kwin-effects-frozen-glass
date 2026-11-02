@@ -102,6 +102,10 @@ namespace KWin
         void startMovedResized(EffectWindow *w);
         bool updateWindowWobblyDatas(EffectWindow *w, qreal time);
 
+
+
+        void publishGlassMesh(EffectWindow *w);
+
         struct WindowWobblyInfos
         {
             QList<Pair> origin;

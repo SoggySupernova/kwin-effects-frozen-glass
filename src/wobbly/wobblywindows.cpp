@@ -40,10 +40,11 @@ Q_LOGGING_CATEGORY(KWIN_WOBBLYWINDOWS, "kwin_effect_wobblywindows", QtWarningMsg
 
 static void glassLog(const QString &msg)
 {
-    QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
-    if (f.open(QIODevice::Append | QIODevice::Text)) {
-        QTextStream(&f) << msg << "\n";
-    }
+    // For testing!
+    //QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
+    //if (f.open(QIODevice::Append | QIODevice::Text)) {
+        //QTextStream(&f) << msg << "\n";
+    //}
 }
 
 
@@ -266,8 +267,14 @@ namespace KWin
 
             if (windows.contains(w)) {
                 data.setTransformed();
-                w->setData(GlassWobbleTrackedRole, true);        // NEW
+                w->setData(GlassWobbleTrackedRole, true);
+                publishGlassMesh(w);
+            } else {
+                w->setData(GlassWobbleTrackedRole, QVariant());
+                w->setData(GlassMeshRole, QVariant());
+                w->setData(GlassMeshRestRole, QVariant());
             }
+
         } else if (w->data(GlassMeshRole).isValid()) {   // NEW
             w->setData(GlassMeshRole, QVariant());
             w->setData(GlassMeshRestRole, QVariant());
@@ -279,12 +286,10 @@ namespace KWin
 
     void GlassWobblyEffect::apply(EffectWindow *w, int mask, WindowPaintData &data, WindowQuadList &quads)
     {
-        glassLog(QStringLiteral("fork apply entered, tracked=%1").arg(windows.contains(w)));
         if (windows.contains(w)) {
             WindowWobblyInfos &wwi = windows[w];
-
             if (!wwi.wobblying) {
-                w->setData(GlassMeshRole, QVariant());   // NEW
+                w->setData(GlassMeshRole, QVariant());
                 w->setData(GlassMeshRestRole, QVariant());
                 return;
             }
@@ -299,14 +304,6 @@ namespace KWin
             double bottom = w->height();
 
             quads = quads.makeRegularGrid(m_xTessellation, m_yTessellation);
-            QPolygonF rest;                                  // NEW
-            rest.reserve(quads.count() * 4);
-            for (int i = 0; i < quads.count(); ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    rest << QPointF(quads[i][j].x(), quads[i][j].y());
-                }
-            }
-
             for (int i = 0; i < quads.count(); ++i) {
                 for (int j = 0; j < 4; ++j) {
                     WindowVertex &v = quads[i][j];
@@ -319,26 +316,6 @@ namespace KWin
                 right = std::max(right, quads[i].right());
                 bottom = std::max(bottom, quads[i].bottom());
             }
-
-
-            // after the `for (int i = 0; i < quads.count(); ++i)` loop, before the dirtyRect code:
-            QPolygonF mesh;
-            mesh.reserve(quads.count() * 4);
-            for (int i = 0; i < quads.count(); ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    mesh << QPointF(quads[i][j].x() + tx, quads[i][j].y() + ty);
-                }
-            }
-            glassLog(QStringLiteral("fork apply: pts=%1 readback=%2")
-            .arg(mesh.size())
-            .arg(w->data(GlassMeshRole).isValid()));
-            glassLog(QStringLiteral("fork apply: mesh=%1 rest=%2 quads=%3")
-            .arg(mesh.size()).arg(rest.size()).arg(quads.count()));
-            w->setData(GlassMeshRole, QVariant::fromValue(mesh));   // NEW
-            w->setData(GlassMeshRestRole, QVariant::fromValue(rest));   // NEW
-
-
-
             RectF dirtyRect(
                 left * data.xScale() + w->x() + data.xTranslation(),
                             top * data.yScale() + w->y() + data.yTranslation(),
@@ -1159,6 +1136,49 @@ namespace KWin
     bool GlassWobblyEffect::isResizeWobble() const
     {
         return m_resizeWobble;
+    }
+
+    void GlassWobblyEffect::publishGlassMesh(EffectWindow *w)
+    {
+        auto it = windows.find(w);
+        if (it == windows.end() || !it->wobblying) {
+            w->setData(GlassMeshRole, QVariant());
+            w->setData(GlassMeshRestRole, QVariant());
+            return;
+        }
+        WindowWobblyInfos &wwi = *it;
+
+        // Same input quad OffscreenEffect hands to apply(): expanded geometry, frame-relative.
+        const RectF frame = w->frameGeometry();
+        const RectF expanded = w->expandedGeometry();
+        RectF visible = expanded;
+        visible.moveTopLeft(expanded.topLeft() - frame.topLeft());
+
+        WindowQuad quad;
+        quad[0] = WindowVertex(visible.topLeft(), QPointF(0, 0));
+        quad[1] = WindowVertex(visible.topRight(), QPointF(1, 0));
+        quad[2] = WindowVertex(visible.bottomRight(), QPointF(1, 1));
+        quad[3] = WindowVertex(visible.bottomLeft(), QPointF(0, 1));
+        WindowQuadList quads;
+        quads.append(quad);
+        quads = quads.makeRegularGrid(m_xTessellation, m_yTessellation);
+
+        const int width = frame.width();
+        const int height = frame.height();
+        QPolygonF rest, mesh;
+        rest.reserve(quads.count() * 4);
+        mesh.reserve(quads.count() * 4);
+        for (int i = 0; i < quads.count(); ++i) {
+            for (int j = 0; j < 4; ++j) {
+                const WindowVertex &v = quads[i][j];
+                rest << QPointF(v.x(), v.y());
+                const Pair uv = {v.x() / width, v.y() / height};
+                const Pair p = computeBezierPoint(wwi, uv);
+                mesh << QPointF(p.x, p.y);   // global logical pixels
+            }
+        }
+        w->setData(GlassMeshRole, QVariant::fromValue(mesh));
+        w->setData(GlassMeshRestRole, QVariant::fromValue(rest));
     }
 
 } // namespace KWin
