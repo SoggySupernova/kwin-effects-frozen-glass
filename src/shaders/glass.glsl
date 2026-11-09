@@ -262,12 +262,32 @@ vec4 glass(vec4 sum, vec4 cornerRadius)
 
     float refraction_px = ICE_REFRACTION_STRENGTH * REFRACTION_PX_SCALE;
     float edgeScale = (ICE_QUALITY_MODE == 2) ? 1.0 : (0.35 + 0.65 * crack_glow);
-    vec2 bend_px = bend * refraction_px * edgeScale;
-    vec2 sample_uv = (meshMode == 1)
-    ? backdropUv() + bend_px / max(bgSize, vec2(1.0))
-    : (frag + bend_px) / safe_size;
 
-    vec4 backdrop = texture(texUnit, sample_uv);
+
+
+    vec2 bend_px_r = bend * refraction_px * edgeScale * 0.9;
+    vec2 sample_uv_r = (meshMode == 1)
+    ? backdropUv() + bend_px_r / max(bgSize, vec2(1.0))
+    : (frag + bend_px_r) / safe_size;
+    vec4 backdrop_r = texture(texUnit, sample_uv_r);
+
+    vec2 bend_px_g = bend * refraction_px * edgeScale * 1.0;
+    vec2 sample_uv_g = (meshMode == 1)
+    ? backdropUv() + bend_px_g / max(bgSize, vec2(1.0))
+    : (frag + bend_px_g) / safe_size;
+    vec4 backdrop_g = texture(texUnit, sample_uv_g);
+
+    vec2 bend_px_b = bend * refraction_px * edgeScale * 1.1;
+    vec2 sample_uv_b = (meshMode == 1)
+    ? backdropUv() + bend_px_b / max(bgSize, vec2(1.0))
+    : (frag + bend_px_b) / safe_size;
+    vec4 backdrop_b = texture(texUnit, sample_uv_b);
+
+    vec4 backdrop = vec4(backdrop_r.r, backdrop_g.g, backdrop_b.b, backdrop_r.a);
+
+
+
+
     vec4 clear_backdrop = sum;
 
     vec2 frost_uv = ice_texture_uv * max(ICE_frost_scale, 0.001);

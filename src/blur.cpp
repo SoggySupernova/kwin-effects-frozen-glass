@@ -317,6 +317,11 @@ BlurEffect::~BlurEffect()
 #endif
 }
 
+
+bool BlurEffect::shouldForceContentBlur(EffectWindow *w) {
+    return w->opacity() < 1.0;
+}
+
 void BlurEffect::initBlurStrengthValues()
 {
     // This function creates an array of blur strength values that are evenly distributed
@@ -507,6 +512,10 @@ void BlurEffect::updateBlurRegion(EffectWindow *w)
             }
             content = region;
         }
+
+        if (!content.has_value() && shouldForceContentBlur(w)) {
+            content = BlurRegion();   // empty = whole contents rect
+        }
 #else
         if (surface->blur()) {
             content = surface->blur()->region();
@@ -592,6 +601,8 @@ void BlurEffect::updateBlurRegion(EffectWindow *w)
     }
 }
 
+
+
 void BlurEffect::slotWindowAdded(EffectWindow *w)
 {
     SurfaceInterface *surf = w->surface();
@@ -615,6 +626,12 @@ void BlurEffect::slotWindowAdded(EffectWindow *w)
         if (w) {
             updateBlurRegion(w);
             repaintDynamicCorners();
+        }
+    });
+
+    connect(w, &EffectWindow::windowOpacityChanged, this, [this, w]() {
+        if (w) {
+            updateBlurRegion(w);
         }
     });
 
@@ -944,6 +961,8 @@ BlurRegion BlurEffect::blurRegion(EffectWindow *w, const BorderRadius *fallbackC
 {
     BlurRegion region = contentRegion(w, fallbackCornerRadius);
 
+
+    // Append decoration frames if they exist
     if (auto it = m_windows.find(w); it != m_windows.end()) {
         const std::optional<BlurRegion> &frame = it->second.frame;
         if (frame.has_value()) {
@@ -953,6 +972,8 @@ BlurRegion BlurEffect::blurRegion(EffectWindow *w, const BorderRadius *fallbackC
 
     return region;
 }
+
+
 
 QRectF BlurEffect::dynamicCornerRect(EffectWindow *w) const
 {
@@ -1072,11 +1093,17 @@ void BlurEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPrePain
 
 bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintData &data) const
 {
+
+
     if (effects->activeFullScreenEffect() && !w->data(WindowForceBlurRole).toBool()) {
         return false;
     }
 
     if (w->isDesktop()) {
+        return false;
+    }
+
+    if (w->isDeleted()) {
         return false;
     }
 
@@ -1115,6 +1142,9 @@ bool BlurEffect::shouldBlur(const EffectWindow *w, int mask, const WindowPaintDa
 
     return true;
 }
+
+
+
 
 DrawWindowResult BlurEffect::drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data)
 {

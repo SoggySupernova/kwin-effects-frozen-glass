@@ -49,7 +49,7 @@ void main(void)
         sum /= 12.0;
     }
 
-    sum = glass(sum, cornerRadius);
+    // sum = glass(sum, cornerRadius);
 
 
     vec2 maskVertex = vertex;

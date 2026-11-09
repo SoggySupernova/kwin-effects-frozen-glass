@@ -146,6 +146,7 @@ private:
     };
 
     void initBlurStrengthValues();
+    bool shouldForceContentBlur(EffectWindow *w);
     BlurRegion contentRegion(EffectWindow *w, const BorderRadius *fallbackCornerRadius = nullptr) const;
     BlurRegion blurRegion(EffectWindow *w, const BorderRadius *fallbackCornerRadius = nullptr) const;
     BlurRegion roundedContentRegion(const QRect &rect, const BorderRadius &cornerRadius, qreal leftSideWidth, qreal rightSideWidth, qreal topHeight, qreal bottomHeight) const;
