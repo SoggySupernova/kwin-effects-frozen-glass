@@ -155,7 +155,11 @@ private:
     BlurRegion decorationBlurRegion(const EffectWindow *w) const;
     bool decorationSupportsBlurBehind(const EffectWindow *w) const;
     bool shouldBlur(const EffectWindow *w, int mask, const WindowPaintData &data) const;
-    void updateBlurRegion(EffectWindow *w);
+    enum class BlurRegionUpdateMode {
+        Unconditional,
+        IfNoContentBlurRequest,
+    };
+    void updateBlurRegion(EffectWindow *w, BlurRegionUpdateMode mode = BlurRegionUpdateMode::Unconditional);
     void repaintDynamicCorners();
     void blur(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data);
     GLTexture *ensureNoiseTexture(int noiseStrength);
@@ -204,6 +208,14 @@ private:
         int rimSpecularLocation;
         int rimSpecularScaleLocation;
         int rimWidthLocation;
+        int rimSpecularTopLeftLocation;
+        int rimSpecularTopRightLocation;
+        int rimSpecularBottomLeftLocation;
+        int rimSpecularBottomRightLocation;
+        int rimSpecularTopLeftColorLocation;
+        int rimSpecularTopRightColorLocation;
+        int rimSpecularBottomLeftColorLocation;
+        int rimSpecularBottomRightColorLocation;
         int rimAdaptToRefractionLocation;
         int rimAdaptMultiplierLocation;
         int meshModeLocation;
@@ -260,6 +272,8 @@ private:
     BlurPipelineSettings m_dockBlurSettings{};
     QStringList m_windowClasses;
     bool m_whitelist;
+    QStringList m_decorWindowClasses;
+    bool m_decorWhitelist;
 
     struct OffsetStruct
     {

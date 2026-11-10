@@ -608,6 +608,16 @@
             </layout>
            </item>
            <item>
+            <widget class="QCheckBox" name="kcfg_UseWindowPaletteTint">
+             <property name="text">
+              <string>Get tint color from the window palette</string>
+             </property>
+             <property name="toolTip">
+              <string>Use the window palette's Window background color as the tint color.</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <layout class="QHBoxLayout" name="tintAndEdgeOptionsLayout">
              <item>
               <layout class="QVBoxLayout" name="edgeLightingOptionsLayout">
@@ -829,6 +839,9 @@
                <property name="text">
                 <string>Blur only matching</string>
                </property>
+               <attribute name="buttonGroup">
+                <string>windowBlurMode</string>
+               </attribute>
               </widget>
              </item>
              <item>
@@ -839,16 +852,69 @@
                <property name="checked">
                 <bool>true</bool>
                </property>
+               <attribute name="buttonGroup">
+                <string>windowBlurMode</string>
+               </attribute>
               </widget>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="QCheckBox" name="kcfg_BlurDecorations">
-             <property name="text">
-              <string>Apply effects to window decorations as well</string>
-             </property>
-            </widget>
+            <layout class="QVBoxLayout">
+             <item>
+              <layout class="QHBoxLayout">
+               <item>
+                <widget class="QLabel" name="windowClassesBriefDescription">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Classes of windows to blur decorations:</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="KContextualHelpButton" name="windowClassesContextualHelp"/>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPlainTextEdit" name="kcfg_DecorWindowClasses"/>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="layoutMatchingMode">
+             <item>
+              <widget class="QRadioButton" name="kcfg_BlurMatchingDecorations">
+               <property name="text">
+                <string>Blur only matching</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string>windowDecorBlurMode</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="kcfg_BlurDecorations">
+               <property name="text">
+                <string>Blur all except matching</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string>windowDecorBlurMode</string>
+               </attribute>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -1655,6 +1721,86 @@
                </layout>
               </item>
               <item>
+               <layout class="QHBoxLayout" name="rimSpecularTopLeftRow">
+                <item><widget class="QCheckBox" name="kcfg_RimSpecularTopLeft"><property name="text"><string>Top Left</string></property></widget></item>
+                <item><spacer name="rimSpecularTopLeftStretch"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property></spacer></item>
+                 <item><widget class="QLineEdit" name="kcfg_RimSpecularTopLeftColor">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight</set>
+                  </property>
+                  <property name="toolTip">
+                   <string>Enter a color in #RRGGBB format.</string>
+                  </property>
+                </widget></item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="rimSpecularTopRightRow">
+                <item><widget class="QCheckBox" name="kcfg_RimSpecularTopRight"><property name="text"><string>Top Right</string></property></widget></item>
+                <item><spacer name="rimSpecularTopRightStretch"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property></spacer></item>
+                <item><widget class="QLineEdit" name="kcfg_RimSpecularTopRightColor">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight</set>
+                  </property>
+                  <property name="toolTip">
+                   <string>Enter a color in #RRGGBB format.</string>
+                  </property>
+                </widget></item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="rimSpecularBottomLeftRow">
+                <item><widget class="QCheckBox" name="kcfg_RimSpecularBottomLeft"><property name="text"><string>Bottom Left</string></property></widget></item>
+                <item><spacer name="rimSpecularBottomLeftStretch"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property></spacer></item>
+                <item><widget class="QLineEdit" name="kcfg_RimSpecularBottomLeftColor">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight</set>
+                  </property>
+                  <property name="toolTip">
+                   <string>Enter a color in #RRGGBB format.</string>
+                  </property>
+                </widget></item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="rimSpecularBottomRightRow">
+                <item><widget class="QCheckBox" name="kcfg_RimSpecularBottomRight"><property name="text"><string>Bottom Right</string></property></widget></item>
+                <item><spacer name="rimSpecularBottomRightStretch"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property></spacer></item>
+                <item><widget class="QLineEdit" name="kcfg_RimSpecularBottomRightColor">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight</set>
+                  </property>
+                  <property name="toolTip">
+                   <string>Enter a color in #RRGGBB format.</string>
+                  </property>
+                </widget></item>
+               </layout>
+              </item>
+              <item>
                <layout class="QHBoxLayout" name="horizontalLayoutRimGlowColor">
                 <item>
                  <widget class="QLabel" name="labelGlowColor">
@@ -1670,6 +1816,9 @@
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight</set>
                   </property>
                   <property name="toolTip">
                    <string>Enter a color in #AARRGGBB format. The A (alpha) channel sets glow strength.</string>
@@ -2375,4 +2524,8 @@
    <slot>setDisabled(bool)</slot>
   </connection>
  </connections>
+ <buttongroups>
+  <buttongroup name="windowBlurMode"/>
+  <buttongroup name="windowDecorBlurMode"/>
+ </buttongroups>
 </ui>

@@ -41,6 +41,13 @@ big thanks to [@dnmodder](https://github.com/dnmodder) for providing the patch f
 > If the effect stops working after a system upgrade, you will need to rebuild it or reinstall the package.
 
 
+=======
+## Packages
+> [!IMPORTANT]
+> If find errors with these instructions (ie missing packages) feel free to raise in issue (or PR) describing your findings.
+If you have nixos, uh good luck i have no idea
+
+
 ## Manual
 > [!NOTE]
 > On Fedora Kinoite and other distributions based on it, the effect must be built in a container.

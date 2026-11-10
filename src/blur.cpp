@@ -53,6 +53,7 @@
 
 #include <QGuiApplication>
 #include <QMatrix4x4>
+#include <QPalette>
 #include <QScreen>
 #include <QTime>
 #include <QTimer>
@@ -192,6 +193,14 @@ BlurEffect::BlurEffect()
         m_roundedOnscreenPass.rimSpecularLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecular");
         m_roundedOnscreenPass.rimSpecularScaleLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularScale");
         m_roundedOnscreenPass.rimWidthLocation = m_roundedOnscreenPass.shader->uniformLocation("rimWidth");
+        m_roundedOnscreenPass.rimSpecularTopLeftLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularTopLeft");
+        m_roundedOnscreenPass.rimSpecularTopRightLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularTopRight");
+        m_roundedOnscreenPass.rimSpecularBottomLeftLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularBottomLeft");
+        m_roundedOnscreenPass.rimSpecularBottomRightLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularBottomRight");
+        m_roundedOnscreenPass.rimSpecularTopLeftColorLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularTopLeftColor");
+        m_roundedOnscreenPass.rimSpecularTopRightColorLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularTopRightColor");
+        m_roundedOnscreenPass.rimSpecularBottomLeftColorLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularBottomLeftColor");
+        m_roundedOnscreenPass.rimSpecularBottomRightColorLocation = m_roundedOnscreenPass.shader->uniformLocation("rimSpecularBottomRightColor");
         m_roundedOnscreenPass.rimAdaptToRefractionLocation = m_roundedOnscreenPass.shader->uniformLocation("rimAdaptToRefraction");
         m_roundedOnscreenPass.rimAdaptMultiplierLocation = m_roundedOnscreenPass.shader->uniformLocation("rimAdaptMultiplier");
         m_roundedOnscreenPass.meshModeLocation = m_roundedOnscreenPass.shader->uniformLocation("meshMode");
@@ -430,6 +439,8 @@ void BlurEffect::reconfigure(ReconfigureFlags flags)
 
     m_whitelist = (m_settings.forceBlur.windowClassMatchingMode == WindowClassMatchingMode::Whitelist);
     m_windowClasses = m_settings.forceBlur.windowClasses;
+    m_decorWhitelist = (m_settings.forceBlur.decorWindowClassMatchingMode == WindowClassMatchingMode::Whitelist);
+    m_decorWindowClasses = m_settings.forceBlur.decorWindowClasses;
 
     if (m_valid) {
         const auto stackingOrder = effects->stackingOrder();
@@ -471,7 +482,7 @@ BlurEffect::BlurPipelineSettings BlurEffect::pipelineSettingsForStrength(int blu
     };
 }
 
-void BlurEffect::updateBlurRegion(EffectWindow *w)
+void BlurEffect::updateBlurRegion(EffectWindow *w, BlurRegionUpdateMode mode)
 {
     std::optional<BlurRegion> content;
     std::optional<BlurRegion> frame;
@@ -534,12 +545,24 @@ void BlurEffect::updateBlurRegion(EffectWindow *w)
         }
     }
 
+    // A recognized content-blur request disables the opacity-dependent forced-blur
+    // fallback, so opacity-only notifications do not require a region update here.
+    // Other callers must still refresh the cached blur state.
+    if (mode == BlurRegionUpdateMode::IfNoContentBlurRequest && content.has_value()) {
+        return;
+    }
+
     if (w->decorationHasAlpha() && decorationSupportsBlurBehind(w)) {
         frame = decorationBlurRegion(w);
     }
 
+    const auto windowClass = w->window()->resourceClass();
+    const auto resourceName = w->window()->resourceName();
+
+    const auto matches = m_decorWindowClasses.contains(windowClass) || m_decorWindowClasses.contains(resourceName);
+
     if (
-        m_settings.forceBlur.blurDecorations &&
+        (m_decorWhitelist == matches) &&
         !(
             w->isDock() ||
             w->isMenu() ||
@@ -552,7 +575,14 @@ void BlurEffect::updateBlurRegion(EffectWindow *w)
         frame = BlurRegion(w->frameGeometry().translated(-w->x(), -w->y()).toRect());
 #else
         BlurRegion glass(Rect(w->frameGeometry().translated(-w->x(), -w->y()).toRect()));
-        if (SurfaceInterface *surface = w->surface()) {
+        // The surface opaque region describes buffer opacity before KWin applies
+        // window opacity. Some GTK or Electron windows (e.g. Sublime Text) under XWayland
+        // and Spectacle's Save Image dialog have no recognized content-blur request.
+        // When KWin makes them translucent, subtracting the opaque region would
+        // exclude areas that now need forced blur, so retain the full region.
+        const bool forceTranslucentContent =
+            !content.has_value() && w->opacity() < 1.0;
+        if (SurfaceInterface *surface = w->surface(); surface && !forceTranslucentContent) {
 #ifdef GLASS_KWIN_67
             const RegionF opaque = surface->opaque();
             if (!opaque.isEmpty()) {
@@ -629,11 +659,26 @@ void BlurEffect::slotWindowAdded(EffectWindow *w)
         }
     });
 
+
     connect(w, &EffectWindow::windowOpacityChanged, this, [this, w]() {
         if (w) {
             updateBlurRegion(w);
         }
     });
+
+
+#ifndef GLASS_X11
+    // For windows without a content-blur request, updateBlurRegion() changes whether
+    // it subtracts the surface opaque region when window opacity crosses 1.0.
+    // Recompute on that transition in either direction; changes entirely below 1.0
+    // do not affect the region.
+    connect(w, &EffectWindow::windowOpacityChanged, this,
+            [this](EffectWindow *window, qreal oldOpacity, qreal newOpacity) {
+        if ((oldOpacity < 1.0) != (newOpacity < 1.0)) {
+            updateBlurRegion(window, BlurRegionUpdateMode::IfNoContentBlurRequest);
+        }
+    });
+#endif
 
     if (auto internal = w->internalWindow()) {
         internal->installEventFilter(this);
@@ -1663,13 +1708,27 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularLocation, m_settings.general.rimSpecular ? 1 : 0);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularScaleLocation, m_settings.general.rimSpecularScale);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimWidthLocation, m_settings.general.rimWidth);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularTopLeftLocation, m_settings.general.rimSpecularTopLeft ? 1 : 0);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularTopRightLocation, m_settings.general.rimSpecularTopRight ? 1 : 0);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularBottomLeftLocation, m_settings.general.rimSpecularBottomLeft ? 1 : 0);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularBottomRightLocation, m_settings.general.rimSpecularBottomRight ? 1 : 0);
+    const QColor specTL(m_settings.general.rimSpecularTopLeftColor);
+    const QColor specTR(m_settings.general.rimSpecularTopRightColor);
+    const QColor specBL(m_settings.general.rimSpecularBottomLeftColor);
+    const QColor specBR(m_settings.general.rimSpecularBottomRightColor);
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularTopLeftColorLocation, QVector3D(specTL.redF(), specTL.greenF(), specTL.blueF()));
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularTopRightColorLocation, QVector3D(specTR.redF(), specTR.greenF(), specTR.blueF()));
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularBottomLeftColorLocation, QVector3D(specBL.redF(), specBL.greenF(), specBL.blueF()));
+    m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimSpecularBottomRightColorLocation, QVector3D(specBR.redF(), specBR.greenF(), specBR.blueF()));
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimAdaptToRefractionLocation, m_settings.general.rimAdaptToRefraction ? 1 : 0);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.rimAdaptMultiplierLocation, m_settings.general.rimAdaptMultiplier);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.meshModeLocation, meshMode ? 1 : 0);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.bgSizeLocation,
                                              QVector2D(scaledBackgroundRect.width(), scaledBackgroundRect.height()));
 
-    QColor tint(m_settings.general.tintColor);
+    QColor tint = m_settings.general.useWindowPaletteTint
+        ? w->window()->palette().color(QPalette::Window)
+        : QColor(m_settings.general.tintColor);
     QVector3D tintVec(tint.redF(), tint.greenF(), tint.blueF());
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.tintColorLocation, tintVec);
     m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.tintGrayLocation, static_cast<float>(0.299 * tint.redF() + 0.587 * tint.greenF() + 0.114 * tint.blueF()));
@@ -1692,6 +1751,9 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         }
         if (decorationRegion && m_settings.general.excludeDecorations) {
             return 0.0f;
+        }
+        if (m_settings.general.useWindowPaletteTint && m_settings.general.autoTintAlpha) {
+            return 1.0f;
         }
         return static_cast<float>(tint.alphaF());
     };

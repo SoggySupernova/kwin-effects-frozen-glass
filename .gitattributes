@@ -1,1 +1,3 @@
 src/shaders/glass.glsl merge=ours
+src/blur.cpp merge=manual-patch
+src/blur.h merge=manual-patch

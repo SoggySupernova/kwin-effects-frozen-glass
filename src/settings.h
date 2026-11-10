@@ -32,6 +32,7 @@ struct GeneralSettings
     float dockUpsampleOffset;
     bool saturationCompensation;
     QString tintColor;
+    bool useWindowPaletteTint;
     bool autoTintAlpha;
     float autoTintAlphaMin;
     float autoTintAlphaMax;
@@ -42,6 +43,14 @@ struct GeneralSettings
     bool rimSpecular;
     float rimSpecularScale;
     float rimWidth;
+    bool rimSpecularTopLeft;
+    bool rimSpecularTopRight;
+    bool rimSpecularBottomLeft;
+    bool rimSpecularBottomRight;
+    QString rimSpecularTopLeftColor;
+    QString rimSpecularTopRightColor;
+    QString rimSpecularBottomLeftColor;
+    QString rimSpecularBottomRightColor;
     bool rimAdaptToRefraction;
     float rimAdaptMultiplier;
     bool edgeLighting;
@@ -58,7 +67,8 @@ struct ForceBlurSettings
 {
     QStringList windowClasses;
     WindowClassMatchingMode windowClassMatchingMode;
-    bool blurDecorations;
+    QStringList decorWindowClasses;
+    WindowClassMatchingMode decorWindowClassMatchingMode;
     bool blurMenus;
     bool blurDocks;
 };
