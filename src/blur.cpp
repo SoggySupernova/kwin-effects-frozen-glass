@@ -91,7 +91,25 @@ static void glassLog(const QString &msg)
         //QTextStream(&f) << msg << "\n";
     //}
 }
-
+static void glassLog2(const QString &msg)
+{
+    // Also for testing!
+    //QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
+    //if (f.open(QIODevice::Append | QIODevice::Text)) {
+    //QTextStream(&f) << msg << "\n";
+    //}
+}
+static int glassDbg()
+{
+    // Even more testing!
+    //static int n = 0, v = 0;
+    //if ((n++ % 60) == 0) {
+    //    QFile f(QDir::homePath() + QStringLiteral("/glass.dbg"));
+    //    v = f.open(QIODevice::ReadOnly) ? f.readAll().trimmed().toInt() : 0;
+    //}
+    //return v;
+    return 0;
+}
 
 
 
@@ -1259,8 +1277,70 @@ GLTexture *BlurEffect::ensureNoiseTexture(int noiseStrength)
     return m_noisePass.noiseTexture.get();
 }
 
+struct GlassGpuTimer
+{
+    static constexpr int N = 16;
+    static inline GLuint q[N];
+    static inline bool init = false;
+    static inline int head = 0, tail = 0;   // queries in [tail, head) are pending
+    static inline int calls = 0;
+    static inline double gpuMs = 0, cpuMs = 0;
+    static inline QElapsedTimer clock;
+    static inline QHash<QString, int> by;
+
+    bool active = false;
+    std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+
+    GlassGpuTimer()
+    {
+        if (!init) {
+            glGenQueries(N, q);
+            init = true;
+            clock.start();
+        }
+        ++calls;
+        if (head - tail < N) {
+            glBeginQuery(GL_TIME_ELAPSED, q[head % N]);
+            active = true;
+        }
+    }
+    ~GlassGpuTimer()
+    {
+        if (active) {
+            glEndQuery(GL_TIME_ELAPSED);
+            ++head;
+        }
+        cpuMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+        while (tail < head) {
+            GLuint ready = 0;
+            glGetQueryObjectuiv(q[tail % N], GL_QUERY_RESULT_AVAILABLE, &ready);
+            if (!ready) {
+                break;
+            }
+            GLuint64 ns = 0;
+            glGetQueryObjectui64v(q[tail % N], GL_QUERY_RESULT, &ns);
+            gpuMs += ns / 1e6;
+            ++tail;
+        }
+        if (clock.elapsed() >= 1000) {
+            QStringList parts;
+            for (auto it = by.cbegin(); it != by.cend(); ++it) {
+                parts << QStringLiteral("%1=%2").arg(it.key()).arg(it.value());
+            }
+            glassLog2(QStringLiteral("  by class: %1").arg(parts.join(' ')));
+            by.clear();
+            glassLog2(QStringLiteral("glass: %1 calls/s, GPU %2 ms/s, CPU %3 ms/s")
+            .arg(calls).arg(gpuMs, 0, 'f', 0).arg(cpuMs, 0, 'f', 0));
+            calls = 0;
+            gpuMs = cpuMs = 0;
+            clock.restart();
+        }
+    }
+};
+
 void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const BlurRegion &deviceRegion, WindowPaintData &data)
 {
+    if (glassDbg() == 3) return;
     auto it = m_windows.find(w);
     if (it == m_windows.end()) {
         return;
@@ -1271,6 +1351,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     if (!shouldBlur(w, mask, data)) {
         return;
     }
+    GlassGpuTimer::by[w->window()->resourceClass() + (w->isFullScreen() ? "*" : "")]++;
 
     auto transformShape = [&](BlurRegion shape) {
         shape.translate(w->pos().toPoint());
@@ -1449,6 +1530,8 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         return;
     }
 
+    GlassGpuTimer gpuTimer;
+
     // Maybe reallocate offscreen render targets. Keep in mind that the first one contains
     // original background behind the window, it's not blurred.
     GLenum textureFormat = GL_RGBA8;
@@ -1457,6 +1540,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     }
 
     if (renderInfo.framebuffers.size() != (m_maxIterationCount + 1) || renderInfo.textures[0]->size() != backgroundRect.size() || renderInfo.textures[0]->internalFormat() != textureFormat) {
+        glassLog(QStringLiteral("realloc %1x%2").arg(backgroundRect.width()).arg(backgroundRect.height()));
         renderInfo.framebuffers.clear();
         renderInfo.textures.clear();
 
@@ -1501,6 +1585,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         renderInfo.framebuffers[0]->blitFromRenderTarget(renderTarget, viewport, dirtyRect, dirtyRect.translated(-backgroundRect.topLeft()));
     }
 #endif
+    if (glassDbg() == 1) return;
 
     // Upload the geometry: the first 6 vertices are used when downsampling and upsampling offscreen,
     // the remaining vertices are used when rendering on the screen.
@@ -1769,6 +1854,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
 
 
     auto drawBlurredRegion = [&](GLTexture *blurredTexture, int vertexOffset, int currentVertexCount, float blurOffset) {
+        if (glassDbg() == 2 || glassDbg() == 5) return;
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         m_roundedOnscreenPass.shader->setUniform(m_roundedOnscreenPass.offsetLocation, blurOffset * m_upsampleOffset);
@@ -1778,6 +1864,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     };
 
     auto drawNoiseRegion = [&](int noiseStrength, int vertexOffset, int currentVertexCount) {
+        if (glassDbg() == 2 || glassDbg() == 4) return;
         if (noiseStrength <= 0 || currentVertexCount == 0) {
             return;
         }
@@ -1822,7 +1909,7 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
 
     ShaderManager::instance()->popShader();
 
-    if (combinedBlurSettings.noiseStrength > 0 || (splitRenderRegions && m_decorationBlurSettings.noiseStrength > 0)) {
+    if (!meshMode && (combinedBlurSettings.noiseStrength > 0 || (splitRenderRegions && m_decorationBlurSettings.noiseStrength > 0))) {
         // Apply an additive noise onto the blurred image. The noise is useful to mask banding
         // artifacts, which often happens due to the smooth color transitions in the blurred image.
 

@@ -37,7 +37,15 @@ void main(void)
     float dist = roundedRectangleDist(position, halfBlurSize, cornerRadius);
 
     vec4 sum = vec4(0);
+
     if (dist <= 0.0) {
+
+        if (meshMode == 1) {
+                sum = texture(texUnit, buv);
+        } else {
+                // ...your existing 8-tap block unchanged...
+
+
         sum = texture(texUnit, buv + vec2(-halfpixel.x * 2.0, 0.0) * offset);
         sum += texture(texUnit, buv + vec2(-halfpixel.x, halfpixel.y) * offset) * 2.0;
         sum += texture(texUnit, buv + vec2(0.0, halfpixel.y * 2.0) * offset);
@@ -47,6 +55,8 @@ void main(void)
         sum += texture(texUnit, buv + vec2(0.0, -halfpixel.y * 2.0) * offset);
         sum += texture(texUnit, buv + vec2(-halfpixel.x, -halfpixel.y) * offset) * 2.0;
         sum /= 12.0;
+
+        }
     }
 
     // sum = glass(sum, cornerRadius);
