@@ -40,7 +40,9 @@ void main(void)
 
     if (dist <= 0.0) {
 
-        if (meshMode == 1) {
+
+        // Optimization, allegedly. Not much visual change so i'm keeping for now.
+        if (1 == 1) {
                 sum = texture(texUnit, buv);
         } else {
                 // ...your existing 8-tap block unchanged...

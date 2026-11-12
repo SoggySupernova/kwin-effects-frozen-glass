@@ -85,7 +85,7 @@ static void ensureResources()
 
 static void glassLog(const QString &msg)
 {
-    // For testing!
+    // For testing the blitting, offscreen pass, etc.
     //QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
     //if (f.open(QIODevice::Append | QIODevice::Text)) {
         //QTextStream(&f) << msg << "\n";
@@ -93,22 +93,22 @@ static void glassLog(const QString &msg)
 }
 static void glassLog2(const QString &msg)
 {
-    // Also for testing!
-    //QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
-    //if (f.open(QIODevice::Append | QIODevice::Text)) {
-    //QTextStream(&f) << msg << "\n";
-    //}
+    // For testing performance.
+    QFile f(QDir::homePath() + QStringLiteral("/glass.log"));
+    if (f.open(QIODevice::Append | QIODevice::Text)) {
+    QTextStream(&f) << msg << "\n";
+    }
 }
 static int glassDbg()
 {
-    // Even more testing!
-    //static int n = 0, v = 0;
-    //if ((n++ % 60) == 0) {
-    //    QFile f(QDir::homePath() + QStringLiteral("/glass.dbg"));
-    //    v = f.open(QIODevice::ReadOnly) ? f.readAll().trimmed().toInt() : 0;
-    //}
-    //return v;
-    return 0;
+    // For quickly switching between debug modes without needing to recompile.
+    static int n = 0, v = 0;
+    if ((n++ % 60) == 0) {
+        QFile f(QDir::homePath() + QStringLiteral("/glass.dbg"));
+        v = f.open(QIODevice::ReadOnly) ? f.readAll().trimmed().toInt() : 0;
+    }
+    return v;
+    //return 0;
 }
 
 
@@ -1353,6 +1353,19 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
     }
     GlassGpuTimer::by[w->window()->resourceClass() + (w->isFullScreen() ? "*" : "")]++;
 
+    if (glassDbg() == 6) {
+        bool anyTracked = false;
+        for (const auto &entry : m_windows) {
+            if (entry.first->data(GlassWobbleTrackedRole).isValid()) {
+                anyTracked = true;
+                break;
+            }
+        }
+        if (anyTracked && !w->data(GlassWobbleTrackedRole).isValid()) {
+            return;
+        }
+    }
+
     auto transformShape = [&](BlurRegion shape) {
         shape.translate(w->pos().toPoint());
         if (data.xScale() != 1 || data.yScale() != 1) {
@@ -1463,6 +1476,24 @@ void BlurEffect::blur(const RenderTarget &renderTarget, const RenderViewport &vi
         !contentShape.isEmpty();
     const bool splitRenderRegions = splitBlurSettings || splitTintSettings;
     QRect backgroundRect = effectRect;
+
+
+
+
+    static int dn = 0;
+    if ((dn++ % 60) == 0) {
+        const bool inf = deviceRegion == Region::infinite();
+        glassLog2(QStringLiteral("  %1 inf=%2 damage=%3x%4 blurRect=%5x%6 mesh=%7 tracked=%8")
+        .arg(w->window()->resourceClass()).arg(inf)
+        .arg(inf ? 0 : deviceRegion.boundingRect().width())
+        .arg(inf ? 0 : deviceRegion.boundingRect().height())
+        .arg(backgroundRect.width()).arg(backgroundRect.height())
+        .arg(meshMode).arg(w->data(GlassWobbleTrackedRole).isValid()));
+    }
+
+
+
+
     if (meshMode) {
         backgroundRect = effectRect.united(meshBounds.adjusted(-1, -1, 1, 1).toAlignedRect());
         // Snap the size so the offscreen textures aren't reallocated every wobble frame.
